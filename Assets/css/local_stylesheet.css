@@ -1,0 +1,20 @@
+html {
+    margin: 0;
+}
+
+.body {
+    width: 50vw;
+    text-align: center;
+    margin: 0 auto;
+}
+.center_content {
+    align-content: center;
+    text-align: center;
+    horiz-align: center;
+}
+
+.coordinate_input {
+}
+#ouputs {
+    height: 70vh;
+}
