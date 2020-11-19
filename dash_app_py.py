@@ -1,36 +1,31 @@
+# Import Dash dependencies to build app
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 
+# Import Plotly and it's graph_objects to plot
 import plotly
-import plotly.express as px
 import plotly.graph_objects as go
-import plotly.io as pio
 
-import json
-
+# Import pyproj and dms2dec to handle coordinate systems and conversions
 import pyproj
-from pyproj import Proj, transform
 from dms2dec.dms_convert import dms2dec
 
+# Import Rasterio and it's from_bounds function to deal with tiff file
 import rasterio as rio
-from rasterio.plot import show
 from rasterio.windows import Window, from_bounds
-from IPython.core.display import display
 
+# Import Numpy and Pandas to deal with dataframes and data
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import cm
-from matplotlib.ticker import LinearLocator, FormatStrFormatter
-import seaborn as sns
 import pandas as pd
 
+# Open dataset with rasterio, initiate transformer to transform coordinate systems
 dataset = rio.open("Data/TIFFiles/DHMVIIDSMRAS1m_k13.tif")
 transformer = pyproj.Transformer.from_crs('epsg:4326', 'epsg:31370')
-
+# Create app variable
 app = dash.Dash(__name__, title="Lidar Plot App")
-
+# Create lay-out of the app
 app.layout = html.Div(className="body", children=[
     html.Br(),
     html.H1("Lidar Plot App"),
@@ -50,9 +45,9 @@ app.layout = html.Div(className="body", children=[
         html.Br(), html.Br(),
         html.Button('Plot', id='button'),
         html.Br(), html.Br(), html.Br(),
-        dcc.Slider(id='zoom_slider', value=100, min=10, max=400, marks={i: str(i) for i in range(0, 400, 50)}),
-        html.H3("The height of this point is: "),
-        html.P(id="height_output", children=["0m"])
+        dcc.Slider(id='zoom_slider', value=300, min=10, max=400, marks={i: str(i) for i in range(0, 400, 50)}),
+        html.H3("The estimated height of this point is: "),
+        html.P(id="height_output", children=["0.00m"])
 
     ]),
     html.Div(id="ouputs", children=[
@@ -62,6 +57,7 @@ app.layout = html.Div(className="body", children=[
 ])
 
 
+# Function that uses the inputs as variables and outputs the graph in to the graph element in the lay-out
 @app.callback(
     Output('plot', 'figure'),
     [Input('button', 'n_clicks'),
@@ -75,30 +71,32 @@ app.layout = html.Div(className="body", children=[
            State('seconds_lon', 'value'),
            ])
 def update_graph(button, zoom_slider, degrees_lat, minutes_lat, seconds_lat, degrees_lon, minutes_lon, seconds_lon):
+    # Convert dms to dd
     latitude_4326 = dms2dec(f'''{degrees_lat}°{minutes_lat}'{seconds_lat}"N''')
     longitude_4326 = dms2dec(f'''{degrees_lon}°{minutes_lon}'{seconds_lon}"E''')
+    # Read value of slider
     plot_radius = int(zoom_slider)
-    print(type(plot_radius))
+    # Transform epsg4326 (International) coordinates to 31370 Lambert system (Belgium)
     latitude_be, longitude_be = transformer.transform(latitude_4326, longitude_4326)
+    # Set bounds of window
     left = latitude_be - plot_radius
     bottom = longitude_be - plot_radius
     right = latitude_be + plot_radius
     top = longitude_be + plot_radius
 
+    # Make window and convert it to a dataframe
     brugge = dataset.read(1, window=from_bounds(left, bottom, right, top, dataset.transform))
     dataset_df = pd.DataFrame(data=brugge)
+    # Reverse dataframe to have the right to avoid mirrored plots
     dataset_df = dataset_df[::-1]
-    # try and remove peaks
-    # min_height = dataset_df.values.min()
-    # max_height = (dataset_df.values.max() * 1.1) #give some headroom
 
-    fig_3D = go.Figure(data=[go.Surface(z=dataset_df.values, )])
+    # Generate Figure object - Surface plot with Plotly
+    fig_3D = go.Figure(data=[go.Surface(z=dataset_df.values)])
     fig_3D.update_layout(
-        height=1000,
-        margin=dict(pad=200),
+        height=800,
+        hovermode=False,
         scene=dict(
             aspectmode="data",
-            # aspectratio=dict(x=1, y=1, z=0.2),
             xaxis=dict(
                 showbackground=False,
                 visible=False
@@ -108,7 +106,6 @@ def update_graph(button, zoom_slider, degrees_lat, minutes_lat, seconds_lat, deg
                 visible=False
             ),
             zaxis=dict(
-                # range=[min_height, max_height],
                 showbackground=False,
                 visible=False
             )
@@ -118,14 +115,19 @@ def update_graph(button, zoom_slider, degrees_lat, minutes_lat, seconds_lat, deg
     return fig_3D
 
 
+# Function that updates the total area of the window based on the slider
 @app.callback(Output('height_output', 'children'),
               [Input('plot', 'hoverData')])
-def return_height(hoverData):
-    height = float(hoverData["points"][0]["z"])
-    height = round(height, 1)
+def return_height(hover_data):
+    # Select 'z' data
+    height = float(hover_data["points"][0]["z"])
+    # Subtract 8m (estimate height of Bruges above sealevel)
+    height = round(height - 8.0, 1)
+    # Generate string to print in height_output element in the lay-out
     output_string = f"{height}m"
     return output_string
 
 
+# Run app with Flask
 if __name__ == '__main__':
     app.run_server(debug=True)
