@@ -4,7 +4,7 @@
 3D plot a house, based on coordinates using LIDAR data provided by geopunt.be
 
 ## Requirements
-see requirements.txt
+See requirements.txt
 
-## Progress
+## Trello board
 Follow my progress here: https://trello.com/b/PVqtrId5/3d-housing-app
