@@ -25,7 +25,7 @@ dataset = rio.open("Data/TIFFiles/DHMVIIDSMRAS1m_k13.tif")
 transformer = pyproj.Transformer.from_crs('epsg:4326', 'epsg:31370')
 # Create app variable
 app = dash.Dash(__name__, title="Lidar Plot App")
-#create server variable to deploy
+# Create server variable to deploy
 server = app.server
 # Create lay-out of the app
 app.layout = html.Div(className="body", children=[
@@ -132,4 +132,4 @@ def return_height(hover_data):
 
 # Run app with Flask
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False)
