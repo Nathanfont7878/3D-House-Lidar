@@ -5,6 +5,3 @@
 
 ## Requirements
 See requirements.txt
-
-## Trello board
-Follow my progress here: https://trello.com/b/PVqtrId5/3d-housing-app
