@@ -5,3 +5,6 @@
 
 ## Requirements
 See requirements.txt
+
+## Data
+Data in folder is mainly Bruges based data.
